@@ -1,45 +1,46 @@
 #!/usr/bin/python3
-"""Log Parser"""
-import sys
+""" script that reads stdin line by line and computes metrics """
 
+from sys import stdin
 
-if __name__ == '__main__':
-    file_size = [0]
-    status_codes = {200: 0, 301: 0, 400: 0, 401: 0,
-                    403: 0, 404: 0, 405: 0, 500: 0}
+# init vaariables
+total_file_size: int = 0
+status_code_count_map: dict = {}
 
-    def print_stats():
-        """ Print statistics """
-        print('File size: {}'.format(file_size[0]))
-        for key in sorted(status_codes.keys()):
-            if status_codes[key]:
-                print('{}: {}'.format(key, status_codes[key]))
+try:
+    # loop through the lines from the keyboard input
+    for line_no, line in enumerate(stdin, start=1):
+        # line = line.strip()
 
-    def parse_line(line):
-        """ Checks the line for matches """
+        # tokenize the line read
+        line_token: list = line.split()
+        # print(line_token)  # for debug
+        # print(len(line_token))
+        if len(line_token) != 9:
+            continue
+
+        # destructure the tokenized line
+        ip_address, _, _, _, _, _, request, status_code, file_size = line_token
+
         try:
-            line = line[:-1]
-            word = line.split(' ')
-            # File size is last parameter on stdout
-            file_size[0] += int(word[-1])
-            # Status code comes before file size
-            status_code = int(word[-2])
-            # Move through dictionary of status codes
-            if status_code in status_codes:
-                status_codes[status_code] += 1
-        except BaseException:
-            pass
+            status_code = int(status_code)
+        except ValueError:
+            continue
 
-    linenum = 1
-    try:
-        for line in sys.stdin:
-            parse_line(line)
-            """ print after every 10 lines """
-            if linenum % 10 == 0:
-                print_stats()
-            linenum += 1
-    except KeyboardInterrupt:
-        print_stats()
-        raise
-    print_stats()
+        total_file_size += int(file_size)
 
+        if status_code in status_code_count_map:
+            status_code_count_map[status_code] += 1
+        else:
+            status_code_count_map[status_code] = 1
+
+        if line_no % 10 == 0:
+            print(f"File size: {total_file_size}")
+            for code in sorted(status_code_count_map.keys()):
+                print(f"{code}: {status_code_count_map[code]}")
+
+except KeyboardInterrupt as err:
+    print(f"File size: {total_file_size}")
+    for code in sorted(status_code_count_map.keys()):
+        print(f"{code}: {status_code_count_map[code]}")
+    print(err)
